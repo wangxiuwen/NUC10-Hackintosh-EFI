@@ -1,68 +1,70 @@
-# Intel NUC 10 Hackintosh EFI - macOS Sonoma
+# Intel NUC 10 黑苹果 (Hackintosh) EFI - macOS Sonoma
 
-This repository contains a fine-tuned OpenCore EFI for the **Intel NUC 10 (Frost Canyon)**, specifically optimized for **macOS Sonoma**.
+本仓库提供适用于 **Intel NUC 10 (Frost Canyon)** 的 OpenCore EFI 配置，专门为 **macOS Sonoma** 优化。此配置以 `Intel NUC10i7FNH` 为基准进行调试。
 
-## 💻 Hardware Configuration
+## 💻 硬件配置与支持状态
 
-| Component | specification | Notes / Details |
+| 组件 | 详细信息 | 状态 / 备注 |
 | :--- | :--- | :--- |
-| **CPU** | Intel Core i7-10710U / i5-10210U | NUC10 specific |
-| **GPU** | Intel UHD Graphics 620 | Natively supported via WhateverGreen |
-| **Wi-Fi** | Intel Wi-Fi 6 AX201 | Works via `itlwm` / `AirportItlwm` |
-| **Bluetooth** | Intel Bluetooth | Works via `IntelBluetoothFirmware` (See notes below) |
-| **SD Card** | Genesys Logic GL9755 | Works via `GenericCardReaderFriend` / `AppleSDXC` |
+| **CPU** | Intel Core i7-10710U / i5-10210U | 原生支持 |
+| **核显** | Intel UHD Graphics 620 | 通过 WhateverGreen 驱动，支持硬件加速 |
+| **无线网卡** | Intel Wi-Fi 6 AX201 | 通过 `itlwm` / `AirportItlwm` 驱动正常工作 |
+| **蓝牙** | Intel Bluetooth | 通过 `IntelBluetoothFirmware` 驱动 (见下方已知问题) |
+| **读卡器** | Genesys Logic GL9755 | 通过 `GenericCardReaderFriend` / `AppleSDXC` 支持 |
+| **有线网卡** | Realtek LAN Ethernet | 正常工作 |
+| **声卡** | ALC256 | 前后音频接口正常输出 |
 
-## 🚀 Working Features
+## ⚠️ 已知问题与注意事项
 
-- CPU Power Management & Sleep/Wake functions.
-- Intel UHD Graphics Hardware Acceleration.
-- Realtek LAN Ethernet.
-- Intel Wi-Fi & basic Bluetooth capabilities.
-- Front and Rear Audio Jacks (ALC256).
-- USB Ports (Mapped manually).
-- **Integrated SD Card Reader (Genesys Logic GL9755)**.
-- AirDrop & Handoff (Partially, reliant on Intel network stack spoofing).
+### 1. 蓝牙低功耗 (BLE) 音频连接问题 (Sonoma)
+由于 macOS Monterey/Sonoma 中苹果对蓝牙协议栈的修改，`IntelBluetoothFirmware` 驱动无法处理 BLE 高保真音频握手。
+- **影响:** AirPods 或其他基于 BLE 的耳机连接后可能会立即断开。
+- **解决方案:** 使用旧版协议的无线耳机，或者直接更换原装苹果拆机网卡（如 BCM94360NG），以获得 100% 的原生体验（包括隔空投送和接力）。
 
-## ⚠️ Known Limitations & Issues
-
-### 1. Bluetooth Low Energy (BLE) audio dropout on Sonoma
-Due to Apple's strict modifications to the Bluetooth protocol stack in macOS Monterey/Sonoma, the reverse-engineered `IntelBluetoothFirmware` kext **cannot handle BLE High-Fidelity Audio handshakes**.
-- **Impact:** AirPods or BLE-based headphones will connect and then drop/disconnect immediately.
-- **Workaround 1:** Use an older protocol or standard 2.4Ghz wireless headphones.
-- **Workaround 2 (Ultimate Fix):** Replace the internal Intel AX201 card with a native Apple **BCM94360NG** M.2 Wi-Fi/Bluetooth card for 100% native support.
-
-### 2. SD Card Reader Hardware
-NUC10 uses the Genesys Logic GL9755 SD Card Reader (unlike NUC8 which used Realtek).
-This EFI uses `GenericCardReaderFriend.kext` to spoof the reader to Apple's native `AppleSDXC` driver. It supports hot-plugging, but make sure not to have an SD card inserted *during boot*, as it may delay or stall the boot process occasionally.
-
-## 🛠 Installation Tutorial
-
-### Step 1: Prepare the USB Drive & BIOS
-1. Create a macOS Sonoma offline installer USB using `createinstallmedia`.
-2. Format the USB's EFI partition to FAT32.
-3. Replace the `EFI` folder in your USB's EFI partition with the `EFI` folder from this repository.
-4. **BIOS Settings for NUC10:**
-    - Update BIOS to the latest version.
-    - Disable Secure Boot.
-    - Disable VT-d (Or keep enabled, OpenCore ignores it via `DisableIoMapper`).
-    - Disable Fast Boot.
-    - Set Boot Mode to UEFI ONLY.
-
-### Step 2: Install macOS
-1. Boot from the USB drive and select `Install macOS`.
-2. Open Disk Utility, format your target SSD as **APFS (GUID Partition Map)**.
-3. Install macOS to the SSD. It will reboot multiple times during this process. Make sure it boots from the SSD partition (not the external Installer) after the first reboot.
-
-### Step 3: Post-Installation
-1. Once fully booted into macOS, download [MountEFI](https://github.com/corpnewt/MountEFI) or use Terminal to mount the SSD's hidden EFI partition.
-2. Copy the `EFI` folder from the USB drive to the SSD's EFI partition.
-3. **Generate your own SMBIOS:**
-   - Use [GenSMBIOS](https://github.com/corpnewt/GenSMBIOS) to generate new serial numbers for `Macmini8,1`.
-   - Open `/EFI/OC/config.plist` using ProperTree or OpenCore Configurator.
-   - Go to `PlatformInfo -> Generic` and paste your newly generated `SystemProductName`, `SystemSerialNumber`, `SystemUUID`, and `MLB`.
-   - Save the config file.
-4. Reboot! Your NUC10 is now a fully functional Hackintosh.
+### 2. SD 读卡器
+NUC10 使用了 Genesys Logic GL9755 读卡器。虽然本 EFI 已经通过伪装使其支持热插拔，但**请不要在开机启动时插入 SD 卡**，这偶尔会导致启动过程卡死或变慢。
 
 ---
 
-*This EFI is provided "as is". Always backup your data and existing EFI before testing new configurations.*
+## 🛠 完整安装教程
+
+### 第一步：准备安装 U 盘与 BIOS 设置
+
+1. **制作 macOS Sonoma 安装 U 盘**
+   使用 macOS 自带的 `createinstallmedia` 命令将 Sonoma 安装程序写入 U 盘。
+2. **替换 EFI 文件夹**
+   - 挂载 U 盘的 EFI 分区（必须是 FAT32 格式）。
+   - 将本仓库中的 `EFI` 文件夹完整复制并覆盖 U 盘 EFI 分区中的原有文件夹。
+3. **设置 NUC10 BIOS**
+   - **强烈建议使用 BIOS 版本：v0066**（已验证的最佳版本）。
+   - 关闭 Secure Boot (安全启动)。
+   - 关闭 Fast Boot (快速启动)。
+   - 设置 Boot Mode 为 UEFI ONLY。
+   - *关于 CFG Lock：* 本 EFI 已经开启了 OpenCore 的 `AppleXcpmCfgLock`，在软件层面绕过了 CFG Lock 限制，因此无需对 BIOS 固件进行硬改。
+
+### 第二步：安装 macOS
+
+1. 插入准备好的安装 U 盘，开机按 `F10` 调出启动菜单，选择从 U 盘启动。
+2. 在 OpenCore 引导界面选择 `Install macOS Sonoma`。
+3. 进入恢复界面后，打开 **磁盘工具 (Disk Utility)**。
+4. 选择你的目标内置 NVMe 固态硬盘，点击“抹掉”，格式选择为 **APFS**，方案选择为 **GUID 分区图 (GUID Partition Map)**。
+5. 退出磁盘工具，选择“安装 macOS”，并选择刚刚格式化好的硬盘作为目标磁盘。
+6. 安装过程中系统会自动重启多次。每次重启时，请确保 OpenCore 默认选中你的内部硬盘（macOS Installer）继续安装，而不是重新进入第一步的初始安装界面。
+
+### 第三步：安装后完善 (Post-Installation)
+
+为了让 NUC10 能够脱离 U 盘独立启动，需要将 EFI 迁移到内部 NVMe 硬盘中：
+
+1. 此时系统仍需插着 U 盘引导启动，进入 macOS 系统桌面。
+2. 下载并打开 [MountEFI](https://github.com/corpnewt/MountEFI)（或其他 EFI 挂载工具）。
+3. 分别挂载 **U 盘的 EFI 分区** 和 **内部 NVMe 硬盘的 EFI 分区**。
+4. 将 U 盘 EFI 分区中的 `EFI` 文件夹，完整复制到内部 NVMe 硬盘的 EFI 分区中。
+5. **生成你自己的 SMBIOS (三码):**
+   - 下载并运行 [GenSMBIOS](https://github.com/corpnewt/GenSMBIOS)。
+   - 为型号 `Macmini8,1` (NUC 常见机型设定) 生成新的序列号。
+   - 使用 ProperTree 或 OpenCore Configurator 打开内置硬盘的 `/EFI/OC/config.plist`。
+   - 定位到 `PlatformInfo -> Generic`，将新生成的 `SystemProductName`、`SystemSerialNumber`、`SystemUUID` 和 `MLB` 填入对应位置并保存。
+6. 拔出 U 盘，重启电脑。现在你的 NUC10 已经可以独立启动并成为一台完美的 Hackintosh。
+
+---
+*免责声明: 此 EFI 仅供研究和交流使用。在进行任何系统级别的修改前，请务必备份你的重要数据。*
